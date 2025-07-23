@@ -15,6 +15,7 @@ export class WebRTCManager {
   private participantName: string;
   private onStreamCallback?: (peerId: string, stream: MediaStream, name: string) => void;
   private onPeerLeftCallback?: (peerId: string) => void;
+  private onHandRaisedCallback?: (participantId: string, name: string, raised: boolean) => void;
   private signalingChannel: any;
   private isInitialized = false;
 
@@ -43,6 +44,9 @@ export class WebRTCManager {
       .on('broadcast', { event: 'user-left' }, (payload) => {
         this.handleUserLeft(payload.payload);
       })
+      .on('broadcast', { event: 'hand-raised' }, (payload) => {
+        this.handleHandRaised(payload.payload);
+      })
       .subscribe();
   }
 
@@ -53,7 +57,7 @@ export class WebRTCManager {
         audio: audio ? { 
           echoCancellation: true, 
           noiseSuppression: true, 
-          autoGainControl: true 
+          autoGainControl: true
         } : false
       });
       return this.localStream;
@@ -252,12 +256,22 @@ export class WebRTCManager {
     }
   }
 
+  private handleHandRaised(data: { participantId: string; name: string; raised: boolean }) {
+    if (data.participantId !== this.participantId && this.onHandRaisedCallback) {
+      this.onHandRaisedCallback(data.participantId, data.name, data.raised);
+    }
+  }
+
   onStream(callback: (peerId: string, stream: MediaStream, name: string) => void) {
     this.onStreamCallback = callback;
   }
 
   onPeerLeft(callback: (peerId: string) => void) {
     this.onPeerLeftCallback = callback;
+  }
+
+  onHandRaised(callback: (participantId: string, name: string, raised: boolean) => void) {
+    this.onHandRaisedCallback = callback;
   }
 
   toggleAudio(enabled: boolean) {
@@ -284,14 +298,6 @@ export class WebRTCManager {
         participantId: this.participantId,
         name: this.participantName,
         raised: raised
-      }
-    });
-  }
-
-  onHandRaised(callback: (participantId: string, name: string, raised: boolean) => void) {
-    this.signalingChannel.on('broadcast', { event: 'hand-raised' }, (payload: any) => {
-      if (payload.payload.participantId !== this.participantId) {
-        callback(payload.payload.participantId, payload.payload.name, payload.payload.raised);
       }
     });
   }

@@ -3,7 +3,8 @@ import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Video, VideoOff, Mic, MicOff, Monitor, MonitorOff, 
   MessageSquare, Users, Hand, PhoneOff, Settings,
-  Copy, Send, MoreVertical
+  Copy, Send, MoreVertical, Wifi, WifiOff, Signal,
+  Volume2, VolumeX, Info
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { WebRTCManager } from '../../lib/webrtc';
@@ -51,6 +52,9 @@ export function MeetingRoom() {
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [handRaised, setHandRaised] = useState(false);
   const [handRaisedParticipants, setHandRaisedParticipants] = useState<Set<string>>(new Set());
+  const [micQuality, setMicQuality] = useState<'good' | 'poor' | 'muted'>('good');
+  const [networkQuality, setNetworkQuality] = useState<'good' | 'poor' | 'offline'>('good');
+  const [showCredits, setShowCredits] = useState(false);
 
   // WebRTC
   const [webrtcManager, setWebrtcManager] = useState<WebRTCManager | null>(null);
@@ -61,6 +65,7 @@ export function MeetingRoom() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const chatRefreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const participantsRefreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const qualityCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (meetingCode) {
@@ -70,6 +75,36 @@ export function MeetingRoom() {
       cleanup();
     };
   }, [meetingCode]);
+
+  // Monitor connection quality
+  useEffect(() => {
+    const checkQuality = () => {
+      // Simulate network quality check
+      const connection = (navigator as any).connection;
+      if (connection) {
+        const effectiveType = connection.effectiveType;
+        if (effectiveType === '4g' || effectiveType === 'wifi') {
+          setNetworkQuality('good');
+        } else if (effectiveType === '3g' || effectiveType === '2g') {
+          setNetworkQuality('poor');
+        } else {
+          setNetworkQuality('offline');
+        }
+      }
+      
+      // Update mic quality based on mute state
+      setMicQuality(isMuted ? 'muted' : 'good');
+    };
+
+    qualityCheckIntervalRef.current = setInterval(checkQuality, 2000);
+    checkQuality();
+
+    return () => {
+      if (qualityCheckIntervalRef.current) {
+        clearInterval(qualityCheckIntervalRef.current);
+      }
+    };
+  }, [isMuted]);
 
   // Auto-scroll chat to bottom
   useEffect(() => {
@@ -90,6 +125,9 @@ export function MeetingRoom() {
     }
     if (participantsRefreshIntervalRef.current) {
       clearInterval(participantsRefreshIntervalRef.current);
+    }
+    if (qualityCheckIntervalRef.current) {
+      clearInterval(qualityCheckIntervalRef.current);
     }
   };
 
@@ -200,12 +238,12 @@ export function MeetingRoom() {
     // Set up chat refresh every 1 second for real-time feel
     chatRefreshIntervalRef.current = setInterval(() => {
       fetchChatMessages(meetingId);
-    }, 1000);
+    }, 500); // Faster refresh for more real-time feel
 
     // Set up participants refresh every 3 seconds
     participantsRefreshIntervalRef.current = setInterval(() => {
       fetchParticipants(meetingId);
-    }, 3000);
+    }, 2000); // Faster refresh
   };
 
   const fetchChatMessages = async (meetingId: string) => {
@@ -362,9 +400,9 @@ export function MeetingRoom() {
   }
 
   return (
-    <div className="h-screen bg-gray-900 flex">
+    <div className="h-screen bg-gray-900 flex flex-col lg:flex-row">
       {/* Main video area */}
-      <div className="flex-1 relative">
+      <div className="flex-1 relative order-1 lg:order-1">
         {/* Video Grid */}
         <VideoGrid
           localStream={localStream || undefined}
@@ -378,41 +416,74 @@ export function MeetingRoom() {
         />
         
         {/* Top bar */}
-        <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/50 to-transparent p-6 z-10">
+        <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/70 to-transparent p-3 lg:p-6 z-10">
           <div className="flex items-center justify-between text-white">
-            <div className="flex items-center space-x-4">
-              <h1 className="text-xl font-semibold">{meeting?.title}</h1>
-              <span className="text-sm opacity-75">
+            <div className="flex items-center space-x-2 lg:space-x-4 flex-1 min-w-0">
+              <h1 className="text-sm lg:text-xl font-semibold truncate">{meeting?.title}</h1>
+              <span className="text-xs lg:text-sm opacity-75 hidden sm:inline">
                 {format(new Date(), 'HH:mm')}
               </span>
-              <span className="text-sm bg-white/20 px-2 py-1 rounded">
+              <span className="text-xs lg:text-sm bg-white/20 px-2 py-1 rounded whitespace-nowrap">
                 {participants.length} participant{participants.length !== 1 ? 's' : ''}
               </span>
             </div>
-            <div className="flex items-center space-x-2">
+            
+            {/* Quality indicators */}
+            <div className="flex items-center space-x-1 lg:space-x-2">
+              {/* Network indicator */}
+              <div className="flex items-center space-x-1">
+                {networkQuality === 'good' ? (
+                  <Signal className="w-4 h-4 text-green-400" />
+                ) : networkQuality === 'poor' ? (
+                  <Wifi className="w-4 h-4 text-yellow-400" />
+                ) : (
+                  <WifiOff className="w-4 h-4 text-red-400" />
+                )}
+              </div>
+              
+              {/* Mic quality indicator */}
+              <div className="flex items-center space-x-1">
+                {micQuality === 'good' ? (
+                  <Volume2 className="w-4 h-4 text-green-400" />
+                ) : micQuality === 'poor' ? (
+                  <Volume2 className="w-4 h-4 text-yellow-400" />
+                ) : (
+                  <VolumeX className="w-4 h-4 text-red-400" />
+                )}
+              </div>
+              
               <button
                 onClick={copyMeetingLink}
-                className="px-3 py-1 bg-white/20 rounded-lg hover:bg-white/30 transition-all text-sm flex items-center gap-2"
+                className="px-2 lg:px-3 py-1 bg-white/20 rounded-lg hover:bg-white/30 transition-all text-xs lg:text-sm flex items-center gap-1 lg:gap-2"
               >
-                <Copy className="w-4 h-4" />
-                Copy Link
+                <Copy className="w-3 h-3 lg:w-4 lg:h-4" />
+                <span className="hidden sm:inline">Copy Link</span>
               </button>
+              
+              <button
+                onClick={() => setShowCredits(true)}
+                className="p-1 lg:p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-all"
+                title="Credits"
+              >
+                <Info className="w-3 h-3 lg:w-4 lg:h-4" />
+              </button>
+              
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-all lg:hidden"
+                className="p-1 lg:p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-all lg:hidden"
               >
-                <MoreVertical className="w-5 h-5" />
+                <MoreVertical className="w-4 h-4 lg:w-5 lg:h-5" />
               </button>
             </div>
           </div>
         </div>
 
         {/* Bottom controls */}
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6 z-10">
-          <div className="flex items-center justify-center space-x-4">
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 lg:p-6 z-10">
+          <div className="flex items-center justify-center space-x-2 lg:space-x-4">
             <button
               onClick={toggleMute}
-              className={`p-4 rounded-full transition-all ${
+              className={`p-3 lg:p-4 rounded-full transition-all ${
                 isMuted 
                   ? 'bg-red-500 hover:bg-red-600' 
                   : 'bg-white/20 hover:bg-white/30'
@@ -420,15 +491,15 @@ export function MeetingRoom() {
               title={isMuted ? 'Unmute' : 'Mute'}
             >
               {isMuted ? (
-                <MicOff className="w-6 h-6 text-white" />
+                <MicOff className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
               ) : (
-                <Mic className="w-6 h-6 text-white" />
+                <Mic className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
               )}
             </button>
 
             <button
               onClick={toggleCamera}
-              className={`p-4 rounded-full transition-all ${
+              className={`p-3 lg:p-4 rounded-full transition-all ${
                 isCameraOff 
                   ? 'bg-red-500 hover:bg-red-600' 
                   : 'bg-white/20 hover:bg-white/30'
@@ -436,15 +507,15 @@ export function MeetingRoom() {
               title={isCameraOff ? 'Turn on camera' : 'Turn off camera'}
             >
               {isCameraOff ? (
-                <VideoOff className="w-6 h-6 text-white" />
+                <VideoOff className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
               ) : (
-                <Video className="w-6 h-6 text-white" />
+                <Video className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
               )}
             </button>
 
             <button
               onClick={toggleScreenShare}
-              className={`p-4 rounded-full transition-all ${
+              className={`p-3 lg:p-4 rounded-full transition-all hidden sm:flex ${
                 isScreenSharing 
                   ? 'bg-blue-500 hover:bg-blue-600' 
                   : 'bg-white/20 hover:bg-white/30'
@@ -452,47 +523,49 @@ export function MeetingRoom() {
               title={isScreenSharing ? 'Stop sharing' : 'Share screen'}
             >
               {isScreenSharing ? (
-                <MonitorOff className="w-6 h-6 text-white" />
+                <MonitorOff className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
               ) : (
-                <Monitor className="w-6 h-6 text-white" />
+                <Monitor className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
               )}
             </button>
 
             <button
               onClick={toggleHandRaise}
-              className={`p-4 rounded-full transition-all ${
+              className={`p-3 lg:p-4 rounded-full transition-all ${
                 handRaised 
                   ? 'bg-yellow-500 hover:bg-yellow-600' 
                   : 'bg-white/20 hover:bg-white/30'
               }`}
               title={handRaised ? 'Lower hand' : 'Raise hand'}
             >
-              <Hand className="w-6 h-6 text-white" />
+              <Hand className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
             </button>
 
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-4 rounded-full bg-white/20 hover:bg-white/30 transition-all lg:hidden"
+              className="p-3 lg:p-4 rounded-full bg-white/20 hover:bg-white/30 transition-all lg:hidden"
               title="Toggle chat"
             >
-              <MessageSquare className="w-6 h-6 text-white" />
+              <MessageSquare className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
             </button>
 
             <button
               onClick={leaveMeeting}
-              className="p-4 rounded-full bg-red-500 hover:bg-red-600 transition-all"
+              className="p-3 lg:p-4 rounded-full bg-red-500 hover:bg-red-600 transition-all"
               title="Leave meeting"
             >
-              <PhoneOff className="w-6 h-6 text-white" />
+              <PhoneOff className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
             </button>
           </div>
         </div>
       </div>
 
       {/* Sidebar */}
-      <div className={`w-80 bg-white border-l border-gray-200 flex flex-col transition-all duration-300 ${
-        sidebarOpen ? 'translate-x-0' : 'translate-x-full'
-      } lg:translate-x-0`}>
+      <div className={`w-full lg:w-80 bg-white border-t lg:border-t-0 lg:border-l border-gray-200 flex flex-col transition-all duration-300 order-2 lg:order-2 ${
+        sidebarOpen ? 'h-1/2 lg:h-full' : 'h-0 lg:h-full'
+      } ${
+        sidebarOpen ? 'translate-y-0 lg:translate-x-0' : 'translate-y-full lg:translate-x-full'
+      } lg:translate-y-0 lg:translate-x-0 ${sidebarOpen ? '' : 'lg:translate-x-full'}`}>
         {/* Sidebar header */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex space-x-1">
@@ -612,6 +685,35 @@ export function MeetingRoom() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Credits Modal */}
+      {showCredits && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full">
+            <div className="text-center">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">Credits</h3>
+              <div className="space-y-3 text-gray-700">
+                <p className="text-lg font-semibold">Developed under</p>
+                <p className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Aftabstack
+                </p>
+                <p className="text-sm">by</p>
+                <p className="text-lg font-semibold">Aftab Alam</p>
+                <p className="text-sm text-blue-600">@aftabxplained</p>
+                <div className="pt-4">
+                  <button
+                    onClick={() => setShowCredits(false)}
+                    className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </div>
   );
