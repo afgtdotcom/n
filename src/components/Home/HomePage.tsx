@@ -170,6 +170,21 @@ export function HomePage() {
           </Link>
         </div>
       </div>
+
+      {/* Credits Section */}
+      <div className="py-8 sm:py-12 bg-white border-t border-gray-200">
+        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+          <div className="space-y-2 text-gray-600">
+            <p className="text-sm sm:text-base">Developed under</p>
+            <p className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Aftabstack
+            </p>
+            <p className="text-sm">by</p>
+            <p className="text-base sm:text-lg font-semibold text-gray-800">Aftab Alam</p>
+            <p className="text-sm text-blue-600">@aftabxplained</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
