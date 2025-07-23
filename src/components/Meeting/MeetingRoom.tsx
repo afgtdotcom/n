@@ -714,7 +714,6 @@ export function MeetingRoom() {
           </div>
         </div>
       )}
-      </div>
     </div>
   );
 }
