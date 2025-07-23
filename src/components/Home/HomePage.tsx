@@ -174,10 +174,10 @@ export function HomePage() {
       {/* Professional Footer */}
       <footer className="bg-gray-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid grid-cols-1 gap-8">
+          <div className="text-center">
             {/* Brand Section */}
-            <div className="text-center">
-              <div className="flex items-center space-x-3 mb-4">
+            <div className="mb-8">
+              <div className="flex items-center justify-center space-x-3 mb-4">
                 <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
                   <Video className="w-6 h-6 text-white" />
                 </div>
@@ -185,35 +185,29 @@ export function HomePage() {
                   Metstack
                 </span>
               </div>
-              <p className="text-gray-400 mb-6 max-w-md">
+              <p className="text-gray-400 max-w-md mx-auto">
                 Experience seamless video meetings with real-time collaboration tools. 
                 Connect, collaborate, and create with enterprise-grade security.
               </p>
             </div>
-          {/* Bottom Section with Credits */}
-          <div className="border-t border-gray-800 mt-12 pt-8">
-            <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-              <div className="text-center md:text-left">
+            
+            {/* Credits Section */}
+            <div className="border-t border-gray-800 pt-8">
+              <div className="space-y-2">
                 <p className="text-gray-400 text-sm">
+                  Developed under{' '}
+                  <span className="font-semibold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                    Aftabstack
+                  </span>
+                </p>
+                <p className="text-gray-400 text-sm">
+                  by{' '}
+                  <span className="font-medium text-white">Aftab Alam</span>
+                  {' '}@aftabxplained
+                </p>
+                <p className="text-gray-500 text-xs mt-4">
                   © 2024 Metstack. All rights reserved.
                 </p>
-              </div>
-              
-              {/* Professional Credits */}
-              <div className="text-center md:text-right">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-gray-400 text-sm">
-                    Developed under{' '}
-                    <span className="font-semibold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                      Aftabstack
-                    </span>
-                  </p>
-                  <p className="text-gray-400 text-sm">
-                    by{' '}
-                    <span className="font-medium text-white">Aftab Alam</span>
-                    {' '}@aftabxplained
-                  </p>
-                </div>
               </div>
             </div>
           </div>
